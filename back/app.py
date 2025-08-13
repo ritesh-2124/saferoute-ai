@@ -24,13 +24,23 @@ def ask_safety():
 
     data = request.get_json()
     question = data.get('question')
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
 
+    print("Received question:", question , latitude, longitude)
     if not question:
         return jsonify({"error": "No question provided"}), 400
+        # If location is provided, append it to the prompt
+    if latitude and longitude:
+        location_info = f"The user is currently at coordinates {latitude}, {longitude}. " \
+                        "Provide safety tips or advice relevant to this location."
+        question = f"{question}\n\n{location_info}"
 
     try:
         # Single-turn request (no chat history)
-        response = model.generate_content(question)
+        prompt = f"Answer briefly and clearly in under 3 sentences is it safe for women. {question}"
+        response = model.generate_content(prompt)
+
         return jsonify({"response": response.text})
     except Exception as e:
         print("Error during response generation:", e)

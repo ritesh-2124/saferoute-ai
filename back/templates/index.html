@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Chat</title>
+  <title>SafeRoute AI Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .typing-dots span {
@@ -22,12 +22,14 @@
 <body class="bg-gray-100 flex items-center justify-center h-screen">
   <div class="bg-white w-full max-w-lg rounded-lg shadow p-4 flex flex-col h-[90vh]">
     <div id="chat-box" class="flex-1 overflow-y-auto space-y-3 p-2"></div>
-    <div class="flex mt-3">
+    <div class="flex mt-3 space-x-2">
       <input id="user-input" type="text" placeholder="Ask something..." 
-             class="flex-1 border rounded-l px-3 py-2 focus:outline-none" 
+             class="flex-1 border rounded px-3 py-2 focus:outline-none" 
              onkeypress="if(event.key==='Enter') sendMessage()" />
       <button onclick="sendMessage()" 
-              class="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600">Send</button>
+              class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Send</button>
+      <button id="getLocationBtn"  
+              class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Ask with Location</button>
     </div>
   </div>
 
@@ -51,23 +53,24 @@
       return msgDiv;
     }
 
-    async function sendMessage() {
-      if (!input.value.trim()) return;
-
-      appendMessage(input.value, "user");
+    async function sendToServer(question, latitude = null, longitude = null) {
+      appendMessage(question, "user");
       const typingBubble = appendMessage("", "ai", true);
 
-      const question = input.value;
-      input.value = "";
-
       try {
+        const bodyData = { question };
+        if (latitude && longitude) {
+          bodyData.latitude = latitude;
+          bodyData.longitude = longitude;
+        }
+
         const response = await fetch("/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question })
+          body: JSON.stringify(bodyData)
         });
-        const data = await response.json();
 
+        const data = await response.json();
         typingBubble.remove();
         appendMessage(data.response || data.error, "ai");
 
@@ -76,14 +79,26 @@
         appendMessage("Error: Could not reach server.", "ai");
       }
     }
+
+    function sendMessage() {
+      if (!input.value.trim()) return;
+      sendToServer(input.value);
+      input.value = "";
+    }
+
+    document.getElementById("getLocationBtn").addEventListener("click", () => {
+      if (!input.value.trim()) return alert("Please type your question first!");
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          sendToServer(input.value, lat, lon);
+          input.value = "";
+        });
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    });
   </script>
 </body>
 </html>
-<!-- This is the main HTML template for the AI chat application.
-     It includes a chat interface with user input and AI responses. -->
-<!-- The chat box displays messages, and the user can send messages by pressing Enter or clicking the Send button.
-     The AI responses are simulated with a typing effect using CSS animations. -->
-<!-- The script handles sending messages to the server and displaying responses. -->
-<!-- The chat interface is styled using Tailwind CSS for a clean and modern look. -->
-<!-- The typing effect is created using CSS animations for a more interactive user experience. -->
-<!-- The chat box is scrollable to accommodate long conversations. -->
