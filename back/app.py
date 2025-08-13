@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify ,render_template
 from vertexai.generative_models import GenerativeModel
 import vertexai
 
@@ -14,7 +14,9 @@ try:
 except Exception as e:
     print("Model loading failed:", e)
     model = None
-
+@app.route('/')
+def home():
+    return render_template('index.html')
 @app.route('/ask', methods=['POST'])
 def ask_safety():
     if not model:
